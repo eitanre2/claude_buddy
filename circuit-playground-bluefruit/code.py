@@ -18,10 +18,12 @@
 
 import time
 import json
+import microcontroller
 
 from adafruit_circuitplayground import cp
 
 from adafruit_ble import BLERadio
+from adafruit_ble.advertising import Advertisement
 from adafruit_ble.advertising.standard import ProvideServicesAdvertisement
 from adafruit_ble.services.nordic import UARTService
 
@@ -52,14 +54,22 @@ class Buddy:
     def __init__(self):
         self.ble = BLERadio()
         self.uart = UARTService()
-        self.advert = ProvideServicesAdvertisement(self.uart)
 
-        # Advertise "Claude" + a couple of MAC bytes so multiple buddies are
-        # distinguishable in the desktop picker.
-        suffix = "".join("%02X" % b for b in self.ble.address_bytes[:2])
+        # Advertise "Claude" + 2 bytes of the silicon UID so multiple buddies
+        # are distinguishable in the picker. The UID is factory-burned and
+        # identical on every boot, so the name is always the same for a board.
+        suffix = "".join("%02X" % b for b in microcontroller.cpu.uid[-2:])
         self.name = "Claude" + suffix
         self.ble.name = self.name
-        self.advert.complete_name = self.name
+
+        # The 128-bit Nordic UART UUID + flags already fills 21 of the 31
+        # advertising bytes, leaving no room for a 10-char name (would total 33
+        # and silently drop the name). So advertise the service in the main
+        # packet and carry the name in the SCAN RESPONSE, which the desktop
+        # reads during active scanning.
+        self.advert = ProvideServicesAdvertisement(self.uart)
+        self.scan_response = Advertisement()
+        self.scan_response.complete_name = self.name
 
         # ---- protocol / session state -------------------------------------
         self.owner = None
@@ -289,8 +299,9 @@ class Buddy:
     def run(self):
         cp.pixels.auto_write = False
         while True:
-            # Advertise & wait for the desktop to connect.
-            self.ble.start_advertising(self.advert)
+            # Advertise & wait for the desktop to connect. Name rides in the
+            # scan response (see __init__) so it survives the 31-byte limit.
+            self.ble.start_advertising(self.advert, scan_response=self.scan_response)
             while not self.ble.connected:
                 self.render()
                 time.sleep(0.05)
