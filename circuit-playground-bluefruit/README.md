@@ -5,6 +5,10 @@ Playground Bluefruit** (nRF52840). It connects to the Claude desktop app over
 Bluetooth LE and turns your coding sessions into light, sound, and a pair of
 real **approve / deny** buttons.
 
+**Hardware used:** [Adafruit Circuit Playground Bluefruit — Bluetooth Low Energy
+(product #4333)](https://www.adafruit.com/product/4333) · nRF52840 ·
+[product guide](https://learn.adafruit.com/adafruit-circuit-playground-bluefruit)
+
 > When Claude is generating, the ring spins teal. When Claude needs your
 > permission to run a tool, the ring breathes amber and the speaker chimes —
 > tap **A** to approve, **B** to deny, without leaving your keyboard.

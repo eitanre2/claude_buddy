@@ -13,7 +13,7 @@ The protocol is hardware-agnostic, so this repo holds one folder per board.
 
 | Folder | Hardware | Highlights |
 |---|---|---|
-| [`circuit-playground-bluefruit/`](circuit-playground-bluefruit/) | Adafruit Circuit Playground Bluefruit (nRF52840) | 10× NeoPixel ring, speaker chimes, A/B approve-deny buttons, slide-switch DND, light/shake sensors |
+| [`circuit-playground-bluefruit/`](circuit-playground-bluefruit/) | [Adafruit Circuit Playground Bluefruit](https://www.adafruit.com/product/4333) (nRF52840) | 10× NeoPixel ring, speaker chimes, A/B approve-deny buttons, slide-switch DND, light/shake sensors |
 
 More boards (e.g. an Arduino `Bluefruit nRF52` build with encrypted bonding) can
 be added as sibling folders.
