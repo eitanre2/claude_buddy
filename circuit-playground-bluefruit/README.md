@@ -55,9 +55,48 @@ Service** (newline-delimited JSON). The relevant flow this firmware implements:
   stats panel.
 - **`owner` / `name` / `unpair`** commands are acknowledged.
 
-State → behavior mapping:
+## Modes
 
-| Situation | Ring | Sound |
+The buddy is a small state machine. It's always in exactly one mode, chosen
+from the latest heartbeat snapshot, and the mode decides what the ring and
+speaker do. You never switch modes manually — they follow your Claude sessions.
+
+1. **Disconnected** — not paired, or no heartbeat received for 30 s. The ring is
+   dark except a faint red dot at pixel 0. This is the "I can't see Claude"
+   mode; once the desktop reconnects and sends a snapshot it leaves immediately.
+
+2. **Idle** — connected, sessions exist (`total > 0`) but none are generating.
+   Slow cool-white breathing. Calm "everything's open, nothing's happening".
+
+3. **Empty** — connected but no sessions at all (`total == 0`). Ring fully dark.
+   Distinct from Idle so a blank desk really looks blank.
+
+4. **Running** — at least one session is generating (`running > 0`). A teal dot
+   spins around the ring; faster perceived motion = active work. Each completed
+   turn adds a quick teal blink on top.
+
+5. **Waiting (permission)** — a snapshot arrived with a `prompt`, meaning Claude
+   is blocked needing your approval. The ring breathes **amber** and a rising
+   3-note chime plays once (unless muted). This is the only mode that wants your
+   input: **Button A approves** (`once`), **Button B denies**, **shake** snoozes
+   the alert without deciding. The mode clears the moment you decide or the
+   prompt disappears from a later snapshot.
+
+6. **Celebration** — transient, ~1.2 s. Triggered when approvals cross a
+   multiple of 10 and the level (`lvl`) goes up. A rainbow sweeps the ring with
+   a two-note jingle, then it falls back to whatever mode is current.
+
+Two **modifiers** apply on top of any mode, driven by the onboard sensors
+rather than by Claude:
+
+- **Do Not Disturb** — slide the switch toward the speaker icon to mute every
+  chime. Lights still work; only sound is silenced.
+- **Auto-dim** — the light sensor continuously scales ring brightness to the
+  room (dimmer in the dark, brighter in daylight), so no mode is ever harsh.
+
+### Quick reference
+
+| Mode / trigger | Ring | Sound |
 |---|---|---|
 | Disconnected / no heartbeat 30 s | dark, faint red dot | — |
 | `prompt` present (permission) | amber breathing | rising 3-note chime |
