@@ -31,10 +31,12 @@ NUM_PIXELS = 10
 # Colors
 # ----------------------------------------------------------------------------
 OFF    = (0, 0, 0)
-IDLE   = (8, 8, 12)      # dim cool white — connected, nothing happening
+READY  = (0, 80, 200)    # blue breathe — advertising, ready to pair
+GOOD   = (0, 200, 70)    # green — connected (flash on connect, dot when idle)
+IDLE   = (8, 8, 12)      # dim cool white — connected, sessions open but idle
 RUN    = (0, 180, 120)   # teal spinner — at least one session generating
 WAIT   = (255, 120, 0)   # amber pulse — permission needed (also a chime)
-ERROR  = (255, 0, 0)
+ERROR  = (255, 0, 0)     # red dot — connected but desktop went silent
 CELEB  = (120, 0, 255)   # level-up / celebration
 
 
@@ -80,6 +82,7 @@ class Buddy:
 
         self._boot_ms = time.monotonic()
         self._celebrate_until = 0.0
+        self._connect_flash_until = 0.0   # green confirmation right after connect
 
     # ------------------------------------------------------------------ I/O
     def send(self, obj):
@@ -223,17 +226,34 @@ class Buddy:
 
     def render(self):
         now = time.monotonic()
-        cp.pixels.brightness = self.brightness()
 
-        # Connection lost: no heartbeat for >30 s -> dark with a faint red dot.
-        connected = self.ble.connected and (now - self.last_snapshot) < 30
-        if not connected:
-            cp.pixels.fill(OFF)
-            cp.pixels[0] = scale(ERROR, 0.15)
+        # Not connected: advertising / ready to pair -> slow breathing blue.
+        if not self.ble.connected:
+            cp.pixels.brightness = self.brightness()
+            f = 0.15 + 0.85 * (0.5 + 0.5 * triangle(now * 0.8))
+            cp.pixels.fill(scale(READY, f))
             cp.pixels.show()
             return
 
+        # Link is up but the desktop went silent (no heartbeat 30 s) -> red dot.
+        if (now - self.last_snapshot) >= 30:
+            cp.pixels.brightness = self.brightness()
+            cp.pixels.fill(OFF)
+            cp.pixels[0] = scale(ERROR, 0.25)
+            cp.pixels.show()
+            return
+
+        # Just connected: bright green confirmation flash.
+        if now < self._connect_flash_until:
+            cp.pixels.brightness = 0.4                   # force-visible
+            cp.pixels.fill(GOOD)
+            cp.pixels.show()
+            return
+
+        cp.pixels.brightness = self.brightness()
+
         if now < self._celebrate_until:                 # rainbow level-up
+            cp.pixels.brightness = 0.4
             base = int(now * 200)
             for i in range(NUM_PIXELS):
                 cp.pixels[i] = wheel((base + i * 25) & 255)
@@ -254,12 +274,13 @@ class Buddy:
             cp.pixels.show()
             return
 
-        if self.total == 0:                             # nothing open -> dark
+        if self.total == 0:                             # connected & idle -> green dot
             cp.pixels.fill(OFF)
+            cp.pixels[0] = scale(GOOD, 0.5)
             cp.pixels.show()
             return
 
-        # Idle but sessions exist: slow cool-white breathe.
+        # Sessions exist but none running: slow cool-white breathe.
         f = 0.4 + 0.6 * (0.5 + 0.5 * triangle(now * 0.5))
         cp.pixels.fill(scale(IDLE, f))
         cp.pixels.show()
@@ -275,6 +296,7 @@ class Buddy:
                 time.sleep(0.05)
             self.ble.stop_advertising()
 
+            self._connect_flash_until = time.monotonic() + 0.8   # green flash
             self.last_snapshot = time.monotonic()       # grace period
             while self.ble.connected:
                 self.pump_rx()

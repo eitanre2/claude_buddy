@@ -65,30 +65,43 @@ The buddy is a small state machine. It's always in exactly one mode, chosen
 from the latest heartbeat snapshot, and the mode decides what the ring and
 speaker do. You never switch modes manually — they follow your Claude sessions.
 
-1. **Disconnected** — not paired, or no heartbeat received for 30 s. The ring is
-   dark except a faint red dot at pixel 0. This is the "I can't see Claude"
-   mode; once the desktop reconnects and sends a snapshot it leaves immediately.
+1. **Ready to pair** — powered on but not connected (advertising). The whole
+   ring slowly **breathes blue**. This is the "pair me now" mode — open the
+   Hardware Buddy window and connect.
 
-2. **Idle** — connected, sessions exist (`total > 0`) but none are generating.
-   Slow cool-white breathing. Calm "everything's open, nothing's happening".
+2. **Connected** — the instant the desktop connects, the ring gives a bright
+   **green flash** (~0.8 s) so you *see* the handshake succeed.
 
-3. **Empty** — connected but no sessions at all (`total == 0`). Ring fully dark.
-   Distinct from Idle so a blank desk really looks blank.
+3. **Idle (connected, nothing open)** — connected but no sessions (`total == 0`).
+   A single steady **dim green dot** at pixel 0 — "I'm linked and waiting". This
+   is how you know it's connected at rest (vs. blue = not connected).
 
-4. **Running** — at least one session is generating (`running > 0`). A teal dot
-   spins around the ring; faster perceived motion = active work. Each completed
-   turn adds a quick teal blink on top.
+4. **Idle (sessions open)** — sessions exist (`total > 0`) but none are
+   generating. Slow **cool-white breathing**. Calm "everything's open, nothing's
+   happening".
 
-5. **Waiting (permission)** — a snapshot arrived with a `prompt`, meaning Claude
+5. **Running** — at least one session is generating (`running > 0`). A **teal
+   dot** spins around the ring; faster perceived motion = active work. Each
+   completed turn adds a quick teal blink on top.
+
+6. **Waiting (permission)** — a snapshot arrived with a `prompt`, meaning Claude
    is blocked needing your approval. The ring breathes **amber** and a rising
    3-note chime plays once (unless muted). This is the only mode that wants your
    input: **Button A approves** (`once`), **Button B denies**, **shake** snoozes
    the alert without deciding. The mode clears the moment you decide or the
    prompt disappears from a later snapshot.
 
-6. **Celebration** — transient, ~1.2 s. Triggered when approvals cross a
+7. **Desktop silent** — link is still up but no heartbeat for 30 s (app asleep /
+   crashed). A dim **red dot** at pixel 0 — a real "something's wrong" warning,
+   distinct from the blue "not connected" mode.
+
+8. **Celebration** — transient, ~1.2 s. Triggered when approvals cross a
    multiple of 10 and the level (`lvl`) goes up. A rainbow sweeps the ring with
    a two-note jingle, then it falls back to whatever mode is current.
+
+**Colour key:** blue = ready to pair · green = connected · teal = working ·
+amber = needs you · red = desktop silent · cool-white = idle with sessions ·
+rainbow = level-up.
 
 Two **modifiers** apply on top of any mode, driven by the onboard sensors
 rather than by Claude:
@@ -102,12 +115,14 @@ rather than by Claude:
 
 | Mode / trigger | Ring | Sound |
 |---|---|---|
-| Disconnected / no heartbeat 30 s | dark, faint red dot | — |
-| `prompt` present (permission) | amber breathing | rising 3-note chime |
+| Not connected (advertising) | slow **blue** breathe | — |
+| Connected (handshake) | **green** flash ~0.8 s | — |
+| Connected, `total == 0` | steady dim **green** dot | — |
+| Sessions open, idle | slow cool-white breathe | — |
 | `running > 0` | teal spinner | — |
 | Turn completed | quick teal blink | — |
-| Sessions open, idle | slow cool-white breathe | — |
-| `total == 0` | dark | — |
+| `prompt` present (permission) | amber breathing | rising 3-note chime |
+| Link up, no heartbeat 30 s | dim **red** dot | — |
 | Level up (every 10 approvals) | rainbow sweep | two-note jingle |
 
 Approving plays a happy two-note rise; denying plays a low two-note fall.
