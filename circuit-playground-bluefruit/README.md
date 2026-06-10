@@ -179,6 +179,7 @@ In Claude for macOS/Windows:
 |---|---|
 | **Button A** | Approve the pending tool call (`once`) |
 | **Button B** | Deny the pending tool call |
+| **Button A + B together** | Fire celebration on demand — 10 s rainbow + jingle |
 | **Shake** | Snooze the current alert (no decision sent) |
 | **Slide switch** | Do Not Disturb / mute speaker |
 

@@ -86,6 +86,7 @@ class Buddy:
         # ---- input edge tracking ------------------------------------------
         self._a_was = False
         self._b_was = False
+        self._both_was = False
 
         # ---- line reassembly ----------------------------------------------
         self._buf = b""
@@ -180,6 +181,12 @@ class Buddy:
         """Edge-detect A/B and resolve a pending permission decision."""
         a, b = cp.button_a, cp.button_b
 
+        # Press A + B together (no prompt pending) -> fire celebration on demand.
+        both = a and b
+        if both and not self._both_was and not self.pending:
+            self.celebrate()
+        self._both_was = both
+
         if a and not self._a_was and self.pending:
             self.decide("once")
         if b and not self._b_was and self.pending:
@@ -190,6 +197,14 @@ class Buddy:
         # Shake to snooze the current alert without deciding.
         if self.pending and cp.shake(shake_threshold=20):
             self.flash(IDLE, 0.05)
+
+    def celebrate(self):
+        """Rainbow sweep + jingle (also auto-fired on every 10th approval)."""
+        self._celebrate_until = time.monotonic() + 10.0
+        if not self.muted():
+            cp.play_tone(660, 0.08)
+            cp.play_tone(990, 0.08)
+            cp.play_tone(1320, 0.12)
 
     def decide(self, decision):
         pid = self.pending.get("id")
@@ -298,6 +313,7 @@ class Buddy:
     # ----------------------------------------------------------------- run
     def run(self):
         cp.pixels.auto_write = False
+        print("Claude Buddy up — advertising as", self.name)
         while True:
             # Advertise & wait for the desktop to connect. Name rides in the
             # scan response (see __init__) so it survives the 31-byte limit.
